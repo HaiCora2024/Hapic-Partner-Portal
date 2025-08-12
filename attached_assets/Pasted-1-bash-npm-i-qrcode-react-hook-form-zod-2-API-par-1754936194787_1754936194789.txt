@@ -1,0 +1,274 @@
+1) Установи пакеты
+bash
+Копировать
+Редактировать
+npm i qrcode react-hook-form zod
+2) Обнови API /partner/new-code, чтобы он умел принимать профиль и делать slug «из почты»
+Заменить полностью файл app/api/partner/new-code/route.ts на это:
+
+ts
+Копировать
+Редактировать
+// app/api/partner/new-code/route.ts
+import { NextResponse } from "next/server";
+import { getSessionEmail } from "@/lib/session";
+import {
+  partnersFindOneByEmail,
+  partnersCreate,
+  partnersUpdate,
+  partnersFindOneBySlug,
+} from "@/lib/airtable";
+
+function sanitizeSlug(s: string) {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+function baseFromEmail(email: string) {
+  const local = (email || "").split("@")[0] || "";
+  return sanitizeSlug(local) || "partner";
+}
+function rnd(n = 3) {
+  const abc = "23456789abcdefghijklmnopqrstuvwxyz";
+  return Array.from({ length: n }, () => abc[Math.floor(Math.random() * abc.length)]).join("");
+}
+
+export async function POST(req: Request) {
+  const email = getSessionEmail();
+  if (!email) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  // Поля из анкеты (все опционально, но email для slug обязателен)
+  const body = await req.json().catch(() => ({}));
+  const name = body?.name as string | undefined;
+  const company = body?.company as string | undefined;
+  const focus = body?.focus as string | undefined;
+  const businessEmail = (body?.businessEmail as string | undefined) || email;
+  const messenger = body?.messenger as string | undefined;
+
+  // Кандидат на slug — часть до @ из businessEmail
+  let slug = baseFromEmail(businessEmail);
+
+  // Проверим уникальность slug (если занят — добавим хвост)
+  const taken = await partnersFindOneBySlug(slug);
+  if (taken && taken.fields?.email !== email) {
+    slug = `${slug}-${rnd()}`;
+  }
+
+  // Найдём или создадим партнёра по email из сессии
+  let rec = await partnersFindOneByEmail(email);
+  const fieldsToSave: Record<string, any> = {
+    current_slug: slug,
+  };
+  if (name) fieldsToSave.name = name;
+  if (company) fieldsToSave.company = company;            // ⚠️ создай в Partners поле "company" (Single line text)
+  if (focus) fieldsToSave.focus = focus;                  // ⚠️ создай "focus" (Single select)
+  if (businessEmail) fieldsToSave.business_email = businessEmail; // ⚠️ создай "business_email"
+  if (messenger) fieldsToSave.messenger = messenger;      // ⚠️ создай "messenger"
+
+  if (rec) {
+    await partnersUpdate(rec.id, fieldsToSave);
+  } else {
+    rec = await partnersCreate({ email, ...fieldsToSave });
+  }
+
+  return NextResponse.json({ slug });
+}
+И добавь в lib/airtable.ts две маленькие функции (если их ещё нет):
+
+ts
+Копировать
+Редактировать
+// ВНИЗ ДОБАВЬ
+export async function partnersFindOneBySlug(slug: string) {
+  const ff = encodeURIComponent(`{current_slug}='${slug.replace(/'/g, "\\'")}'`);
+  const data = await atFetch(`${encodeURIComponent(PARTNERS)}?maxRecords=1&filterByFormula=${ff}`);
+  return data.records?.[0] || null;
+}
+⚠️ Убедись, что в таблице Partners есть поля:
+name (text), company (text), focus (single select), business_email (email/text), messenger (text), current_slug (text)
+
+3) Дашборд: кнопка «Засабмитить» + модалка-анкета + показ ссылки и QR
+Просто вставь это на страницу app/dashboard/page.tsx (ниже — готовый блок, можно положить в конец файла). Он:
+
+открывает модалку по кнопке «Засабмитить лид»,
+
+валидирует 4 поля,
+
+шлёт форму на /api/partner/new-code,
+
+строит реф-ссылку из NEXT_PUBLIC_LANDING_URL + ?ref=slug,
+
+делает QR (PNG data URL), показывает превью и «Скачать PNG».
+
+tsx
+Копировать
+Редактировать
+// app/dashboard/page.tsx (добавь этот блок внутрь компонента или импортни как отдельный файл)
+"use client";
+import { useEffect, useState } from "react";
+import QRCode from "qrcode";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
+const schema = z.object({
+  name: z.string().min(2, "Укажите имя"),
+  company: z.string().min(2, "Укажите компанию"),
+  focus: z.string().min(2, "Выберите отрасль"),
+  businessEmail: z.string().email("Некорректный email"),
+  messenger: z.string().optional(),
+});
+type FormValues = z.infer<typeof schema>;
+
+const FOCUS_OPTIONS = [
+  "Fintech", "E-commerce", "Media", "SaaS", "AI/ML", "EdTech", "Gaming", "Health", "Other"
+];
+
+export default function Dashboard(){
+  const [email,setEmail] = useState<string|null>(null);
+  const [open, setOpen] = useState(false);
+  const [refLink, setRefLink] = useState<string>("");
+  const [qr, setQr] = useState<string>("");
+
+  useEffect(() => {
+    fetch("/api/auth/whoami").then(r=> r.ok ? r.json() : Promise.reject())
+      .then(d=> setEmail(d.email))
+      .catch(()=> location.href="/login");
+  }, []);
+
+  async function buildQR(link: string) {
+    const png = await QRCode.toDataURL(link);
+    setQr(png);
+  }
+
+  const landing = process.env.NEXT_PUBLIC_LANDING_URL || "";
+
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
+    defaultValues: { name:"", company:"", focus:"", businessEmail:"", messenger:"" }
+  });
+
+  const onSubmit = async (values: FormValues) => {
+    // простая проверка схемы
+    const parsed = schema.safeParse(values);
+    if (!parsed.success) return;
+
+    const res = await fetch("/api/partner/new-code", {
+      method: "POST",
+      headers: { "Content-Type":"application/json" },
+      body: JSON.stringify(values),
+    });
+    if (!res.ok) {
+      alert("Ошибка создания кода");
+      return;
+    }
+    const { slug } = await res.json();
+    const link = `${landing}?ref=${slug}&utm_source=partner&utm_campaign=${slug}`;
+    setRefLink(link);
+    await buildQR(link);
+    setOpen(false);  // спрячем форму
+  };
+
+  if (!email) return <div style={{padding:24}}>Загрузка...</div>;
+
+  return (
+    <div style={{padding:24, display:"grid", gap:16}}>
+      <h1>Кабинет</h1>
+
+      <button
+        onClick={() => setOpen(true)}
+        style={{padding:"10px 16px", borderRadius:8, border:"1px solid #ddd"}}
+      >
+        Засабмитить лид
+      </button>
+
+      {refLink && (
+        <div style={{display:"grid", gap:8}}>
+          <div>Ваша реф-ссылка:</div>
+          <code style={{wordBreak:"break-all"}}>{refLink}</code>
+          <div style={{display:"flex", gap:12, alignItems:"center"}}>
+            {qr && <img src={qr} alt="QR" style={{width:160, height:160}} />}
+            {qr && (
+              <a download="ref-qr.png" href={qr}
+                 style={{textDecoration:"underline"}}>Скачать QR (PNG)</a>
+            )}
+            <button onClick={() => navigator.clipboard.writeText(refLink)}>
+              Скопировать ссылку
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Простая модалка */}
+      {open && (
+        <div style={{
+          position:"fixed", inset:0, background:"rgba(0,0,0,.4)",
+          display:"grid", placeItems:"center", zIndex:50
+        }}>
+          <div style={{
+            width:"min(560px, 92vw)", background:"white", borderRadius:12,
+            padding:20, boxShadow:"0 10px 30px rgba(0,0,0,.2)", display:"grid", gap:12
+          }}>
+            <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+              <h2 style={{margin:0}}>Короткая анкета</h2>
+              <button onClick={()=>setOpen(false)}>✕</button>
+            </div>
+
+            <form onSubmit={handleSubmit(onSubmit)} style={{display:"grid", gap:12}}>
+              <label>
+                <div>Name *</div>
+                <input {...register("name", { required: true })} placeholder="Your full name" />
+                {errors.name && <span style={{color:"red"}}>Укажите имя</span>}
+              </label>
+
+              <label>
+                <div>Company Name *</div>
+                <input {...register("company", { required: true })} placeholder="Your company name" />
+                {errors.company && <span style={{color:"red"}}>Укажите компанию</span>}
+              </label>
+
+              <label>
+                <div>Your Focus *</div>
+                <select {...register("focus", { required: true })} defaultValue="">
+                  <option value="" disabled>Выберите индустрию</option>
+                  {FOCUS_OPTIONS.map(o=> <option key={o} value={o}>{o}</option>)}
+                </select>
+                {errors.focus && <span style={{color:"red"}}>Выберите индустрию</span>}
+              </label>
+
+              <label>
+                <div>Business Email *</div>
+                <input {...register("businessEmail", { required: true })}
+                       type="email" placeholder="your.email@company.com" />
+                {errors.businessEmail && <span style={{color:"red"}}>Укажите корректный email</span>}
+              </label>
+
+              <label>
+                <div>WhatsApp / Telegram (Optional)</div>
+                <input {...register("messenger")} placeholder="+49 151 ... / @username" />
+              </label>
+
+              <button disabled={isSubmitting} type="submit" style={{padding:"10px 16px"}}>
+                {isSubmitting ? "Сохраняем..." : "Сохранить и получить ссылку"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+Если хочешь — вместо модалки можно открыть /dashboard?setup=1 и показывать ту же форму полноэкранно. Но модалка быстрее.
+
+4) (Опционально) В app/api/partner/stats/route.ts верни ещё и slug, чтобы на загрузке показывать готовую ссылку, если уже есть
+Заменить ответ:
+
+ts
+Копировать
+Редактировать
+// ...
+const slug = partner.fields?.current_slug || "";
+const pid = partner.fields?.partner_id || "";
+// ...
+return NextResponse.json({ total: records.length, byStatus, slug });
+Тогда в Dashboard можно при монтировании дергать /api/partner/stats и, если slug есть — сразу показать ссылку и QR без модалки.

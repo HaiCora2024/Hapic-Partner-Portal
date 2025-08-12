@@ -1,0 +1,115 @@
+1) Найди, какой компонент undefined
+Вставь временно в DashboardPage перед return:
+
+tsx
+Копировать
+Редактировать
+console.log({
+  StatsCards: typeof StatsCards,
+  LeadsTable: typeof LeadsTable,
+  PartnerSetupModal: typeof PartnerSetupModal,
+  Button: typeof Button,
+});
+В консоли браузера увидишь, какой = "undefined". Обычно это PartnerSetupModal или StatsCards.
+
+2) Приведи экспорты/импорты к единому стилю (named)
+A) Импорты в DashboardPage (оставь именно так):
+ts
+Копировать
+Редактировать
+import { StatsCards } from '@/components/dashboard/stats-cards';
+import { LeadsTable } from '@/components/dashboard/leads-table';
+import { PartnerSetupModal } from '@/components/partner-setup-modal';
+import { Button } from '@/components/ui/button';
+B) Проверь/исправь файлы компонентов, чтобы у всех был named export:
+components/dashboard/stats-cards.tsx
+
+tsx
+Копировать
+Редактировать
+'use client';
+export function StatsCards({ stats }: { stats: { total:number; pending:number; approved:number; confirmedEarnings:number } }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="rounded-lg border p-4"><div className="text-sm text-muted-foreground">Total</div><div className="text-2xl font-bold">{stats.total}</div></div>
+      <div className="rounded-lg border p-4"><div className="text-sm text-muted-foreground">Pending</div><div className="text-2xl font-bold">{stats.pending}</div></div>
+      <div className="rounded-lg border p-4"><div className="text-sm text-muted-foreground">Approved</div><div className="text-2xl font-bold">{stats.approved}</div></div>
+      <div className="rounded-lg border p-4"><div className="text-sm text-muted-foreground">Earnings</div><div className="text-2xl font-bold">€{stats.confirmedEarnings}</div></div>
+    </div>
+  );
+}
+components/dashboard/leads-table.tsx — у тебя уже есть; важно, чтобы была строка:
+
+tsx
+Копировать
+Редактировать
+export function LeadsTable(/* ... */) { /* ... */ }
+components/partner-setup-modal.tsx (минимальная заглушка, если файла нет/экспорт не тот):
+
+tsx
+Копировать
+Редактировать
+'use client';
+export function PartnerSetupModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: { isOpen:boolean; onClose:()=>void; onSuccess:(refLink?:string, qrCode?:string)=>void }) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black/40 grid place-items-center z-50">
+      <div className="bg-white rounded-xl p-4 w-[90vw] max-w-md">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="font-semibold">Quick setup</h3>
+          <button onClick={onClose}>✕</button>
+        </div>
+        {/* сюда вернёшь форму позже; пока просто имитируем успех */}
+        <button
+          className="border rounded px-3 py-2"
+          onClick={() => onSuccess?.('https://example.com/?ref=demo', '')}
+        >
+          Generate link
+        </button>
+      </div>
+    </div>
+  );
+}
+components/ui/button.tsx (shadcn) должно экспортировать named:
+
+tsx
+Копировать
+Редактировать
+// должно быть: export { Button } from "@/components/ui/button"
+Если у тебя нет shadcn, временно замени на обычный:
+
+tsx
+Копировать
+Редактировать
+export function Button(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return <button {...props} className={"border rounded px-3 py-2 " + (props.className||"")} />;
+}
+3) Проверь регистры имён и пути
+Имена файлов на Replit/Node чувствительны к регистру. Файл stats-cards.tsx не равен Stats-Cards.tsx.
+
+Убедись, что tsconfig.json содержит alias @/*. Если нет — либо добавь, либо замени @/components/... на относительные пути:
+
+json
+Копировать
+Редактировать
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": { "@/*": ["./*"] }
+  }
+}
+4) Подстрахуй рендер (чтобы не падало при отладке)
+В DashboardPage можно временно защититься:
+
+tsx
+Копировать
+Редактировать
+{typeof StatsCards === 'function' ? <StatsCards stats={stats} /> : null}
+{typeof LeadsTable === 'function' ? <LeadsTable /> : null}
+{typeof PartnerSetupModal === 'function' && showSetupModal ? (
+  <PartnerSetupModal isOpen={showSetupModal} onClose={()=>setShowSetupModal(false)} onSuccess={()=>setShowSetupModal(false)} />
+) : null}

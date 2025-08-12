@@ -1,0 +1,95 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+.env
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# logs
+*.log
+server.log
+
+# development scripts
+/scripts/
+
+# Claude/AI assistant files
+.claude/
+CLAUDE.md
+PLANNING.md
+TASK.md
+
+# Documentation and analysis files
+*.md
+PRD*.txt
+*Research*.md
+*Conversation*.md
+*Analysis*.md
+
+# PRPs folder (project requirement plans)
+/PRPs/
+
+# Design and mockup files
+/designs/
+*.fig
+*.sketch
+*.xd
+
+# Database setup files (keep these in version control)
+# *.sql
+# /supabase/
+
+# Temporary analysis files
+/analysis/
+/docs/
+/documentation/
+
+# Environment files (already included above)
+.env.production
+.env.development
+.env.staging
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# temporary files
+*.tmp
+*.temp
+# clerk configuration (can include secrets)
+/.clerk/
