@@ -14,17 +14,31 @@ interface Lead {
   created_at: string;
 }
 
-export function LeadsTable() {
-  const [leads, setLeads] = useState<Lead[]>([]);
+interface LeadsTableProps {
+  leads?: Lead[];
+  onStatusUpdate?: (leadId: string, newStatus: string) => void;
+}
+
+export function LeadsTable({ leads: externalLeads, onStatusUpdate }: LeadsTableProps = {}) {
+  const [internalLeads, setInternalLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Use external leads if provided, otherwise fetch internally
+  const leads = externalLeads || internalLeads;
+
   useEffect(() => {
+    // Only fetch if external leads are not provided
+    if (externalLeads) {
+      setLoading(false);
+      return;
+    }
+
     async function fetchLeads() {
       try {
         const response = await fetch('/api/leads');
         if (response.ok) {
           const data = await response.json();
-          setLeads(data.leads || []);
+          setInternalLeads(data.leads || []);
         } else {
           console.error('Failed to fetch leads');
         }
@@ -36,7 +50,7 @@ export function LeadsTable() {
     }
 
     fetchLeads();
-  }, []);
+  }, [externalLeads]);
 
   if (loading) {
     return <div className="text-center py-8">Loading leads...</div>;
