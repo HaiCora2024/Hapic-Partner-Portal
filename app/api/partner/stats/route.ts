@@ -1,7 +1,7 @@
 
 import { NextResponse } from "next/server";
 import { getSessionEmail } from "@/lib/session";
-import { partnersFindOneByEmail, appsListByPartner } from "@/lib/airtable";
+import { partnersFindOneByEmail, appsListByPartner, leadsListByPartner } from "@/lib/airtable";
 
 export async function GET() {
   const email = await getSessionEmail();
@@ -13,10 +13,17 @@ export async function GET() {
   const slug = partner.fields?.current_slug || "";
   const pid = partner.fields?.partner_id || "";
 
-  const records = await appsListByPartner(slug, pid);
+  // Получаем данные из обеих таблиц
+  const [applications, leadsData] = await Promise.all([
+    appsListByPartner(slug, pid),
+    leadsListByPartner(slug, pid)
+  ]);
+
+  // Объединяем все записи
+  const allRecords = [...applications, ...leadsData];
 
   const byStatus: Record<string, number> = {};
-  for (const r of records) {
+  for (const r of allRecords) {
     const s = (r.fields?.status || "new").toString();
     byStatus[s] = (byStatus[s] || 0) + 1;
   }
@@ -25,9 +32,9 @@ export async function GET() {
   const approved = byStatus.approved || 0;
   const confirmedEarnings = approved * 200; // €200 per approved lead
 
-  return NextResponse.json({ 
-    total: records.length, 
-    byStatus, 
+  return NextResponse.json({
+    total: allRecords.length,
+    byStatus,
     slug,
     approved,
     pending: (byStatus.new || 0) + (byStatus.pending || 0),

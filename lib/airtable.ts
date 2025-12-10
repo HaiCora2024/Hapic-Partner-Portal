@@ -4,6 +4,7 @@ const API_KEY = process.env.AIRTABLE_API_KEY!;
 const BASE_ID = process.env.AIRTABLE_BASE_ID!;
 const PARTNERS = process.env.AIRTABLE_PARTNERS_TABLE || "Partners";
 const APPS = process.env.AIRTABLE_APPLICATIONS_TABLE || "Applications";
+const LEADS = process.env.AIRTABLE_LEADS_TABLE || "Leads";
 
 function esc(v: string) {
   // экранирование одинарной кавычки для формулы Airtable
@@ -64,4 +65,14 @@ export async function partnersFindOneBySlug(slug: string) {
   const ff = encodeURIComponent(`{current_slug}='${esc(slug)}'`);
   const data = await atFetch(`${encodeURIComponent(PARTNERS)}?maxRecords=1&filterByFormula=${ff}`);
   return data.records?.[0] || null;
+}
+
+export async function leadsListByPartner(currentSlug?: string, partnerId?: string) {
+  const terms: string[] = [];
+  if (currentSlug) terms.push(`AND({referrer}!='', {referrer}='${esc(currentSlug)}')`);
+  if (partnerId) terms.push(`AND({partner_id}!='', {partner_id}='${esc(partnerId)}')`);
+  const or = terms.length ? (terms.length === 1 ? terms[0] : `OR(${terms.join(",")})`) : "FALSE()";
+  const ff = encodeURIComponent(or);
+  const data = await atFetch(`${encodeURIComponent(LEADS)}?filterByFormula=${ff}&pageSize=100`);
+  return data.records || [];
 }

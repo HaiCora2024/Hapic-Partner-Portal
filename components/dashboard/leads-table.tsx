@@ -12,6 +12,7 @@ interface Lead {
   company_name: string;
   status: string;
   created_at: string;
+  source?: 'applications' | 'leads';
 }
 
 interface LeadsTableProps {
@@ -73,6 +74,7 @@ export function LeadsTable({ leads: externalLeads, onStatusUpdate }: LeadsTableP
             <TableHead>Email</TableHead>
             <TableHead>Company</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Source</TableHead>
             <TableHead>Date</TableHead>
           </TableRow>
         </TableHeader>
@@ -86,6 +88,16 @@ export function LeadsTable({ leads: externalLeads, onStatusUpdate }: LeadsTableP
                 <Badge variant={lead.status === 'approved' ? 'default' : 'secondary'}>
                   {lead.status}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                {lead.source && (
+                  <Badge
+                    variant="outline"
+                    className={lead.source === 'applications' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-green-50 text-green-700 border-green-200'}
+                  >
+                    {lead.source === 'applications' ? 'Application' : 'Lead'}
+                  </Badge>
+                )}
               </TableCell>
               <TableCell>
                 {new Date(lead.created_at).toLocaleDateString()}
