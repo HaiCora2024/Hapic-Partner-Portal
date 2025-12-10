@@ -5,9 +5,17 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LeadsTable } from '@/components/dashboard/leads-table';
-import type { Lead } from '@/lib/supabase/client';
 import { Plus } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
+
+interface Lead {
+  id: string;
+  contact_name: string;
+  contact_email: string;
+  company_name: string;
+  status: string;
+  created_at: string;
+  source?: 'applications' | 'leads';
+}
 
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -26,23 +34,6 @@ export default function LeadsPage() {
       console.error('Error fetching leads:', error);
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function handleStatusUpdate(leadId: string, newStatus: string) {
-    try {
-      const { error } = await supabase
-        .from('leads')
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
-        .eq('id', leadId);
-
-      if (!error) {
-        setLeads(leads.map(lead => 
-          lead.id === leadId ? { ...lead, status: newStatus } : lead
-        ));
-      }
-    } catch (error) {
-      console.error('Error updating status:', error);
     }
   }
 
@@ -69,10 +60,7 @@ export default function LeadsPage() {
           {loading ? (
             <p>Loading...</p>
           ) : (
-            <LeadsTable 
-              leads={leads} 
-              onStatusUpdate={handleStatusUpdate}
-            />
+            <LeadsTable leads={leads} />
           )}
         </CardContent>
       </Card>
