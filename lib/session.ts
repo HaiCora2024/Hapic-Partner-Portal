@@ -42,3 +42,9 @@ export function setSession(email: string): Response {
   response.headers.set('Set-Cookie', `${SESSION_COOKIE}=${encodeURIComponent(email)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`);
   return response;
 }
+
+export function clearSession(): Response {
+  const response = new Response();
+  response.headers.set('Set-Cookie', `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`);
+  return response;
+}
