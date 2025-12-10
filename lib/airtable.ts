@@ -11,6 +11,10 @@ function esc(v: string) {
   return (v ?? "").replace(/'/g, "\\'");
 }
 
+export function getFieldSafe(record: any, fieldName: string, defaultValue: any = null) {
+  return record?.fields?.[fieldName] ?? defaultValue;
+}
+
 async function atFetch(path: string, init?: RequestInit) {
   const url = `https://api.airtable.com/v0/${BASE_ID}/${path}`;
   const r = await fetch(url, {
