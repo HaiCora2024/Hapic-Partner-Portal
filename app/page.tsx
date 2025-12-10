@@ -11,15 +11,11 @@ export default function RootPage() {
     router.push('/login');
   }, [router]);
 
-  // Return simple HTML immediately for health checks
+  // Return simple content immediately for health checks
   return (
-    <html>
-      <body>
-        <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-          <h1>Hapic Partner Portal</h1>
-          <p>Loading...</p>
-        </div>
-      </body>
-    </html>
+    <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+      <h1>Hapic Partner Portal</h1>
+      <p>Loading...</p>
+    </div>
   );
 }
