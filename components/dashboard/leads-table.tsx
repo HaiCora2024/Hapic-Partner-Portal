@@ -12,19 +12,34 @@ interface Lead {
   company_name: string;
   status: string;
   created_at: string;
+  source?: 'applications' | 'leads';
 }
 
-export function LeadsTable() {
-  const [leads, setLeads] = useState<Lead[]>([]);
+interface LeadsTableProps {
+  leads?: Lead[];
+  onStatusUpdate?: (leadId: string, newStatus: string) => void;
+}
+
+export function LeadsTable({ leads: externalLeads, onStatusUpdate }: LeadsTableProps = {}) {
+  const [internalLeads, setInternalLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Use external leads if provided, otherwise fetch internally
+  const leads = externalLeads || internalLeads;
+
   useEffect(() => {
+    // Only fetch if external leads are not provided
+    if (externalLeads) {
+      setLoading(false);
+      return;
+    }
+
     async function fetchLeads() {
       try {
         const response = await fetch('/api/leads');
         if (response.ok) {
           const data = await response.json();
-          setLeads(data.leads || []);
+          setInternalLeads(data.leads || []);
         } else {
           console.error('Failed to fetch leads');
         }
@@ -36,7 +51,7 @@ export function LeadsTable() {
     }
 
     fetchLeads();
-  }, []);
+  }, [externalLeads]);
 
   if (loading) {
     return <div className="text-center py-8">Loading leads...</div>;
@@ -59,6 +74,7 @@ export function LeadsTable() {
             <TableHead>Email</TableHead>
             <TableHead>Company</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Source</TableHead>
             <TableHead>Date</TableHead>
           </TableRow>
         </TableHeader>
@@ -72,6 +88,16 @@ export function LeadsTable() {
                 <Badge variant={lead.status === 'approved' ? 'default' : 'secondary'}>
                   {lead.status}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                {lead.source && (
+                  <Badge
+                    variant="outline"
+                    className={lead.source === 'applications' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-green-50 text-green-700 border-green-200'}
+                  >
+                    {lead.source === 'applications' ? 'Application' : 'Lead'}
+                  </Badge>
+                )}
               </TableCell>
               <TableCell>
                 {new Date(lead.created_at).toLocaleDateString()}

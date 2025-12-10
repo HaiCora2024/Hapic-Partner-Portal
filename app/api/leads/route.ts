@@ -1,7 +1,7 @@
 // app/api/leads/route.ts
     import { NextRequest, NextResponse } from "next/server";
     import { getSessionEmail } from "@/lib/session";
-    import { appsListByPartner, partnersFindOneByEmail } from "@/lib/airtable";
+    import { appsListByPartner, leadsListByPartner, partnersFindOneByEmail } from "@/lib/airtable";
 
     export async function GET() {
       try {
@@ -16,23 +16,45 @@
           return NextResponse.json({ leads: [] });
         }
 
-        // Получаем лиды для этого партнёра
-        const applications = await appsListByPartner(
-          partner.fields.current_slug,
-          partner.id
-        );
+        // Получаем данные из ОБЕИХ таблиц параллельно
+        const [applications, leadsData] = await Promise.all([
+          appsListByPartner(partner.fields.current_slug, partner.id),
+          leadsListByPartner(partner.fields.current_slug, partner.id)
+        ]);
 
-        // Преобразуем в нужный формат
-        const leads = applications.map((app: any) => ({
+        // Преобразуем Applications в нужный формат
+        const appsFormatted = applications.map((app: any) => ({
           id: app.id,
-          contact_name: app.fields.contact_name || app.fields.name || 'N/A',
-          contact_email: app.fields.contact_email || app.fields.email || 'N/A',
-          company_name: app.fields.company_name || app.fields.company || 'N/A',
+          contact_name: app.fields.name || 'N/A',
+          contact_email: app.fields.business_email || app.fields.email || 'N/A',
+          company_name: app.fields.company || app.fields.company_name || 'N/A',
           status: app.fields.status || 'new',
-          created_at: app.fields.created_at || app.createdTime
+          created_at: app.fields['Submission Date'] || app.fields.created_at || app.createdTime,
+          source: 'applications'
         }));
 
-        return NextResponse.json({ leads });
+        // Преобразуем Leads в нужный формат
+        const leadsFormatted = leadsData.map((lead: any) => ({
+          id: lead.id,
+          contact_name: lead.fields.name || 'N/A',
+          contact_email: lead.fields.business_email || lead.fields.email || 'N/A',
+          company_name: lead.fields.company || lead.fields.company_name || 'N/A',
+          status: lead.fields.status || 'new',
+          created_at: lead.fields['Submission Date'] || lead.fields.created_at || lead.createdTime,
+          source: 'leads'
+        }));
+
+        // Объединяем оба источника
+        const allLeads = [...appsFormatted, ...leadsFormatted];
+
+        // Сортируем по дате (новые сначала)
+        allLeads.sort((a, b) => {
+          const dateA = new Date(a.created_at).getTime();
+          const dateB = new Date(b.created_at).getTime();
+          return dateB - dateA;
+        });
+
+        return NextResponse.json({ leads: allLeads });
       } catch (error) {
         console.error('Error fetching leads:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
