@@ -1,32 +1,25 @@
+'use client';
 
-import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
+export default function RootPage() {
+  const router = useRouter();
 
-export default async function RootPage() {
-  const headersList = await headers();
-  const userId = headersList.get('X-Replit-User-Id');
-  const userAgent = headersList.get('user-agent') || '';
+  useEffect(() => {
+    // Client-side redirect to login
+    router.push('/login');
+  }, [router]);
 
-  // If no Replit headers, this is likely a health check
-  // Return a simple page instead of redirecting
-  if (!userId && !headersList.get('X-Replit-User-Name')) {
-    return (
-      <html>
-        <body>
-          <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-            <h1>Hapic Partner Portal</h1>
-            <p>Status: OK</p>
-          </div>
-        </body>
-      </html>
-    );
-  }
-
-  if (userId) {
-    redirect('/dashboard');
-  } else {
-    redirect('/login');
-  }
+  // Return simple HTML immediately for health checks
+  return (
+    <html>
+      <body>
+        <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+          <h1>Hapic Partner Portal</h1>
+          <p>Loading...</p>
+        </div>
+      </body>
+    </html>
+  );
 }
