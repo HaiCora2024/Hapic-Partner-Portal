@@ -5,17 +5,6 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip middleware for static files, API routes, and root path
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
-    pathname === '/' ||
-    pathname === '/health' ||
-    pathname.includes('.')
-  ) {
-    return NextResponse.next();
-  }
-
   // Check for Replit user headers
   const userId = request.headers.get('X-Replit-User-Id');
 
@@ -33,8 +22,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    '/(api|trpc)(.*)',
-  ],
+  // Only match dashboard and login routes, exclude everything else
+  matcher: ['/dashboard/:path*', '/login'],
 };
