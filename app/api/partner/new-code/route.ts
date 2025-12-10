@@ -9,6 +9,8 @@ import {
 } from "@/lib/airtable";
 import QRCode from "qrcode";
 
+export const dynamic = 'force-dynamic';
+
 function sanitizeSlug(s: string) {
   return s
     .toLowerCase()

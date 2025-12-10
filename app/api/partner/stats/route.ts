@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { getSessionEmail } from "@/lib/session";
 import { partnersFindOneByEmail, appsListByPartner, leadsListByPartner } from "@/lib/airtable";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const email = await getSessionEmail();
   if (!email) return NextResponse.json({ error: "unauthorized" }, { status: 401 });

@@ -3,6 +3,8 @@
     import { getSessionEmail } from "@/lib/session";
     import { appsListByPartner, leadsListByPartner, partnersFindOneByEmail } from "@/lib/airtable";
 
+    export const dynamic = 'force-dynamic';
+
     export async function GET() {
       try {
         const email = await getSessionEmail();

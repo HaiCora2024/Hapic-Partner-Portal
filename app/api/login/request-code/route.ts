@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { partnersFindOneByEmail, partnersCreate, partnersUpdate } from "@/lib/airtable";
 import { sendLoginCode } from "@/lib/email";
 
+export const dynamic = 'force-dynamic';
+
 function genCode(n = 6) {
   return Array.from({ length: n }, () => Math.floor(Math.random() * 10)).join("");
 }
