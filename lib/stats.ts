@@ -1,4 +1,8 @@
-import { Lead } from '@/lib/supabase/client';
+interface Lead {
+  id: string;
+  status: string;
+  [key: string]: any;
+}
 
 export function calculateStats(leads: Lead[]) {
   const total = leads.length;
