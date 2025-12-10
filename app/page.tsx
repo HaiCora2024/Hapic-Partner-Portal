@@ -1,21 +1,20 @@
-'use client';
+import { Metadata } from 'next';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+export const metadata: Metadata = {
+  other: {
+    refresh: '0;url=/login',
+  },
+};
 
 export default function RootPage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    // Client-side redirect to login
-    router.push('/login');
-  }, [router]);
-
-  // Return simple content immediately for health checks
+  // Simple static server component with meta refresh
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+    <div style={{ padding: '20px', fontFamily: 'sans-serif', textAlign: 'center', marginTop: '50px' }}>
       <h1>Hapic Partner Portal</h1>
-      <p>Loading...</p>
+      <p>Redirecting to login...</p>
+      <noscript>
+        <a href="/login">Click here if not redirected</a>
+      </noscript>
     </div>
   );
 }
