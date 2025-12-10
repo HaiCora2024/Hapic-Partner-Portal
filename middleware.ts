@@ -5,10 +5,11 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip middleware for static files and API routes
+  // Skip middleware for static files, API routes, and root path
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
+    pathname === '/' ||
     pathname === '/health' ||
     pathname.includes('.')
   ) {
@@ -17,11 +18,6 @@ export function middleware(request: NextRequest) {
 
   // Check for Replit user headers
   const userId = request.headers.get('X-Replit-User-Id');
-
-  // For root path without user headers (health checks), return 200
-  if (pathname === '/' && !userId) {
-    return NextResponse.json({ status: 'ok' }, { status: 200 });
-  }
 
   // If no user and trying to access protected routes, redirect to login
   if (!userId && pathname.startsWith('/dashboard')) {
