@@ -1,0 +1,7 @@
+[deployment]
+run = ["npm", "start"]
+deploymentTarget = "cloudrun"
+
+[health]
+path = "/health.html"
+timeout = 5
