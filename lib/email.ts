@@ -36,7 +36,7 @@ export async function sendLoginCode(to: string, code: string) {
       if (!process.env.FROM_EMAIL) {
         console.warn('Warning: FROM_EMAIL not set, using SMTP_USER as sender.');
       }
-      const t = nodemailer.createTransporter({
+      const t = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: Number(process.env.SMTP_PORT || 587),
         secure: process.env.SMTP_PORT === '465', // Use SSL for port 465
