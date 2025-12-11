@@ -5,7 +5,9 @@ run = "npm run dev"
 channel = "stable-25_05"
 
 [deployment]
+# Команда для запуска в продакшене
 run = ["sh", "-c", "npm start"]
+# Команда для сборки
 build = ["sh", "-c", "npm run build"]
 
 [[ports]]
@@ -45,7 +47,6 @@ runButton = "Project"
 
 [[workflows.workflow]]
 name = "Development Server"
-author = 43722842
 mode = "sequential"
 
 [[workflows.workflow.tasks]]
@@ -67,6 +68,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
+# Здесь мы явно указываем порт 5000, поэтому в [[ports]] тоже 5000
 args = "PORT=5000 npm run dev -- --hostname 0.0.0.0"
 waitForPort = 5000
 

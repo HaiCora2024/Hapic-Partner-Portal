@@ -4,24 +4,18 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow health checks without processing
-  if (pathname === '/healthz' || pathname === '/api/health') {
-    return NextResponse.next();
-  }
-
-  // Check for authentication: Replit headers OR session cookie
+  // Получаем данные сессии
   const userId = request.headers.get('X-Replit-User-Id');
   const sessionEmail = request.cookies.get('session_email')?.value;
-
   const isAuthenticated = !!(userId || sessionEmail);
 
-  // If no auth and trying to access protected routes, redirect to login
-  if (!isAuthenticated && pathname.startsWith('/dashboard')) {
+  // 1. Защита Dashboard
+  if (pathname.startsWith('/dashboard') && !isAuthenticated) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // If authenticated and trying to access login, redirect to dashboard
-  if (isAuthenticated && pathname === '/login') {
+  // 2. Если уже авторизован, не пускаем на Login
+  if (pathname === '/login' && isAuthenticated) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
@@ -29,9 +23,11 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
+  // ВАЖНО: Мы убрали '/' из matcher. 
+  // Middleware теперь работает ТОЛЬКО на /dashboard и /login
+  // Это уберет ошибку "Middleware adding unnecessary overhead"
   matcher: [
-    '/dashboard/:path*',
-    '/login',
-    '/((?!healthz|api/health|_next/static|_next/image|favicon.ico).*)',
+    '/dashboard/:path*', 
+    '/login'
   ],
 };
