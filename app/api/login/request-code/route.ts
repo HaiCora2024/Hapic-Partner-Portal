@@ -19,9 +19,7 @@ export async function POST(req: Request) {
 
     let rec = await partnersFindOneByEmail(email);
     if (!rec) {
-      rec = await partnersCreate({ email, status: "new" });
-    } else if (!rec.fields?.status) {
-      await partnersUpdate(rec.id, { status: "new" });
+      rec = await partnersCreate({ email });
     }
 
     // Если доступна почтовая интеграция — сгенерируем и отправим код сами
