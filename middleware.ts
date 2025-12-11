@@ -1,9 +1,13 @@
-
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Allow health checks and root access without auth
+  if (pathname === '/' || pathname.startsWith('/api/health')) {
+    return NextResponse.next();
+  }
 
   // Check for Replit user headers
   const userId = request.headers.get('X-Replit-User-Id');
@@ -22,6 +26,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Only match dashboard and login routes, exclude everything else
+  // Only match dashboard and login routes, exclude root and API
   matcher: ['/dashboard/:path*', '/login'],
 };
