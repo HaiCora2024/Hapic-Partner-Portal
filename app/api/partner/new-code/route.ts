@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import { getSessionEmail } from "@/lib/session";
 import {
@@ -11,29 +10,17 @@ import QRCode from "qrcode";
 
 export const dynamic = 'force-dynamic';
 
-function sanitizeSlug(s: string) {
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-function baseFromEmail(email: string) {
-  const local = (email || "").split("@")[0] || "";
-  return sanitizeSlug(local) || "partner";
-}
-
-function rnd(n = 3) {
-  const abc = "23456789abcdefghijklmnopqrstuvwxyz";
-  return Array.from({ length: n }, () => abc[Math.floor(Math.random() * abc.length)]).join("");
+// Генерация случайного 6-значного кода (буквы + цифры)
+function generateRandomSlug(length = 6) {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 
 export async function POST(req: Request) {
   const email = await getSessionEmail();
   if (!email) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  // Поля из анкеты (все опционально, но email для slug обязателен)
+  // Поля из анкеты (опционально)
   const body = await req.json().catch(() => ({}));
   const name = body?.name as string | undefined;
   const company = body?.company as string | undefined;
@@ -41,13 +28,16 @@ export async function POST(req: Request) {
   const businessEmail = (body?.businessEmail as string | undefined) || email;
   const messenger = body?.messenger as string | undefined;
 
-  // Кандидат на slug — часть до @ из businessEmail
-  let slug = baseFromEmail(businessEmail);
+  // Генерируем случайный 6-значный slug
+  let slug = generateRandomSlug(6);
 
-  // Проверим уникальность slug (если занят — добавим хвост)
-  const taken = await partnersFindOneBySlug(slug);
-  if (taken && taken.fields?.email !== email) {
-    slug = `${slug}-${rnd()}`;
+  // Проверяем уникальность (если занят — генерируем новый)
+  let attempts = 0;
+  while (attempts < 10) {
+    const taken = await partnersFindOneBySlug(slug);
+    if (!taken) break; // Slug свободен
+    slug = generateRandomSlug(6); // Генерируем новый
+    attempts++;
   }
 
   // Найдём или создадим партнёра по email из сессии
@@ -67,9 +57,9 @@ export async function POST(req: Request) {
     rec = await partnersCreate({ email, ...fieldsToSave });
   }
 
-  // Создаём полную реферальную ссылку
-  const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || "https://your-landing-page.com";
-  const referralLink = `${landingUrl}?ref=${slug}`;
+  // Создаём полную реферальную ссылку с параметром session
+  const landingUrl = "http://onboarding.hapic.com/api/apply/login";
+  const referralLink = `${landingUrl}?session=${slug}`;
 
   // Генерируем QR код
   let qrCodeDataUrl = "";
@@ -86,7 +76,7 @@ export async function POST(req: Request) {
     console.error('Error generating QR code:', error);
   }
 
-  return NextResponse.json({ 
+  return NextResponse.json({
     slug,
     current_slug: slug,
     referral_link: referralLink,
