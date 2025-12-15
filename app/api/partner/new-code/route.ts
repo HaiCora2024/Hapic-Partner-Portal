@@ -58,7 +58,7 @@ export async function POST(req: Request) {
   }
 
   // Создаём полную реферальную ссылку с параметром session
-  const landingUrl = "https://partner-onboarding.replit.app/api/apply/login";
+  const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || "https://onboarding.hapic.com/api/apply/login";
   const referralLink = `${landingUrl}?session=${slug}`;
 
   // Генерируем QR код
