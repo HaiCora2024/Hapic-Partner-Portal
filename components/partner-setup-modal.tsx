@@ -29,6 +29,7 @@ export function PartnerSetupModal({ isOpen, onClose, onSuccess }: PartnerSetupMo
   const router = useRouter();
   const [step, setStep] = useState<'loading' | 'setup' | 'success'>('loading');
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [partnerData, setPartnerData] = useState<{
     refLink: string;
     qrCodeDataUrl: string;
@@ -106,7 +107,8 @@ export function PartnerSetupModal({ isOpen, onClose, onSuccess }: PartnerSetupMo
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    alert('Скопировано!');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const downloadQRCode = () => {
@@ -199,6 +201,11 @@ export function PartnerSetupModal({ isOpen, onClose, onSuccess }: PartnerSetupMo
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {copied && (
+                <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-[100] animate-pulse">
+                  Скопировано
+                </div>
+              )}
               <div>
                 <Label className="text-sm font-medium">Реферальная ссылка</Label>
                 <div className="flex gap-2 mt-1">
