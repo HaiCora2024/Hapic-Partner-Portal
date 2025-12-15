@@ -30,7 +30,7 @@ export async function GET() {
   }
 
   const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || "https://your-landing-page.com";
-  const referralLink = `${landingUrl}?ref=${slug}`;
+  const referralLink = `${landingUrl}?session=${slug}`;
 
   let qrCodeDataUrl = "";
   try {
