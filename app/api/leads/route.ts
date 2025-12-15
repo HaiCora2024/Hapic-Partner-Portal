@@ -17,9 +17,12 @@ export async function GET() {
       return NextResponse.json({ leads: [] });
     }
 
+    const slug = partner.fields?.current_slug || "";
+    const pid = partner.fields?.partner_id || "";
+
     const [applications, leadsData] = await Promise.all([
-      appsListByPartner(partner.fields.current_slug, partner.id),
-      leadsListByPartner(partner.fields.current_slug, partner.id)
+      appsListByPartner(slug, pid),
+      leadsListByPartner(slug, pid)
     ]);
 
     const appsFormatted = applications.map((app: any) => ({
