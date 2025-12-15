@@ -87,6 +87,22 @@ export async function POST(request: NextRequest) {
     const BASE_ID = process.env.AIRTABLE_BASE_ID!;
     const LEADS_TABLE = process.env.AIRTABLE_LEADS_TABLE || "Leads";
 
+    // Подготавливаем данные для Airtable
+    const fieldsToCreate = {
+      name: body.contact_name,
+      business_email: body.contact_email,
+      company: body.company_name,
+      phone: body.contact_phone,
+      monthly_revenue: body.monthly_revenue,
+      current_bank: body.current_bank,
+      best_contact_time: body.best_contact_time,
+      referrer: partner.fields?.current_slug || '',
+      partner_id: partner.fields?.partner_id || partner.id,
+      status: 'new'
+    };
+
+    console.log('Creating lead with fields:', fieldsToCreate);
+
     const response = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(LEADS_TABLE)}`, {
       method: 'POST',
       headers: {
@@ -95,18 +111,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         records: [{
-          fields: {
-            name: body.contact_name,
-            business_email: body.contact_email,
-            company: body.company_name,
-            phone: body.contact_phone,
-            monthly_revenue: body.monthly_revenue,
-            current_bank: body.current_bank,
-            best_contact_time: body.best_contact_time,
-            referrer: partner.fields.current_slug || '',
-            partner_id: partner.id,
-            status: 'new'
-          }
+          fields: fieldsToCreate
         }]
       })
     });
@@ -114,13 +119,24 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Airtable error:', errorText);
-      throw new Error(`Airtable error: ${response.status}`);
+      return NextResponse.json({
+        error: 'Airtable error',
+        details: errorText,
+        status: response.status
+      }, { status: response.status });
     }
 
     const data = await response.json();
-    return NextResponse.json({ data: data.records[0] });
-  } catch (error) {
+    console.log('Lead created successfully:', data.records[0].id);
+    return NextResponse.json({
+      success: true,
+      data: data.records[0]
+    });
+  } catch (error: any) {
     console.error('Error creating lead:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({
+      error: 'Internal server error',
+      details: error.message
+    }, { status: 500 });
   }
 }

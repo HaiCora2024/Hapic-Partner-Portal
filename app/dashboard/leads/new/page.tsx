@@ -27,22 +27,29 @@ export default function NewLeadPage() {
 
   const onSubmit = async (data: LeadFormData) => {
     setIsSubmitting(true);
-    
+
     try {
+      console.log('Submitting lead data:', data);
+
       const response = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
 
-      if (response.ok) {
-        router.push('/dashboard?success=true');
+      const result = await response.json();
+      console.log('API response:', result);
+
+      if (response.ok && result.success) {
+        router.push('/dashboard/leads?success=true');
       } else {
-        alert('Failed to submit lead');
+        const errorMsg = result.details || result.error || 'Failed to submit lead';
+        console.error('API error:', errorMsg);
+        alert(`Ошибка: ${errorMsg}`);
       }
     } catch (error) {
-      console.error('Error:', error);
-      alert('An error occurred');
+      console.error('Network error:', error);
+      alert('Ошибка сети. Проверьте соединение.');
     } finally {
       setIsSubmitting(false);
     }
