@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionEmail } from "@/lib/session";
-import { partnersFindOneByEmail, partnersUpdate, partnersFindOneBySlug, appsListByPartner, leadsListByPartner } from "@/lib/airtable";
+import { partnersFindOneByEmail, partnersUpdate, partnersFindOneBySlug } from "@/lib/airtable";
 
 export const dynamic = 'force-dynamic';
 
@@ -36,33 +36,17 @@ export async function GET() {
     await partnersUpdate(partner.id, { current_slug: slug });
   }
 
-  const pid = partner.fields?.partner_id || "";
-
-  // Получаем данные из обеих таблиц
-  const [applications, leadsData] = await Promise.all([
-    appsListByPartner(slug, pid),
-    leadsListByPartner(slug, pid)
-  ]);
-
-  // Объединяем все записи
-  const allRecords = [...applications, ...leadsData];
-
-  const byStatus: Record<string, number> = {};
-  for (const r of allRecords) {
-    const s = (r.fields?.status || "new").toString();
-    byStatus[s] = (byStatus[s] || 0) + 1;
-  }
-
-  // Calculate earnings based on status
-  const approved = byStatus.approved || 0;
-  const confirmedEarnings = approved * 200; // €200 per approved lead
+  // Читаем агрегированные данные напрямую из Partners таблицы
+  const totalLeads = partner.fields?.['Total Leads'] || 0;
+  const totalPending = partner.fields?.['Total pending'] || 0;
+  const approved = partner.fields?.['Leads + Apps Count'] || 0; // Approved count
+  const confirmedEarnings = partner.fields?.['Total Earned'] || 0; // Confirmed Earnings
 
   return NextResponse.json({
-    total: allRecords.length,
-    byStatus,
+    total: totalLeads,
     slug,
     approved,
-    pending: (byStatus.new || 0) + (byStatus.pending || 0),
+    pending: totalPending,
     confirmedEarnings
   });
 }
