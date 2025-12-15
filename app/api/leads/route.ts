@@ -25,25 +25,35 @@ export async function GET() {
       leadsListByPartner(slug, pid)
     ]);
 
-    const appsFormatted = applications.map((app: any) => ({
-      id: app.id,
-      contact_name: app.fields.name || 'N/A',
-      contact_email: app.fields.business_email || app.fields.email || 'N/A',
-      company_name: app.fields.company || app.fields.company_name || 'N/A',
-      status: app.fields.status || 'new',
-      created_at: app.fields['Submission Date'] || app.fields.created_at || app.createdTime,
-      source: 'applications'
-    }));
+    const appsFormatted = applications.map((app: any) => {
+      const status = app.fields.status || 'new';
+      const profit = status === 'approved' ? 200 : 0;
+      return {
+        id: app.id,
+        contact_name: app.fields.name || 'N/A',
+        contact_email: app.fields.business_email || app.fields.email || 'N/A',
+        company_name: app.fields.company || app.fields.company_name || 'N/A',
+        status,
+        created_at: app.fields['Submission Date'] || app.fields.created_at || app.createdTime,
+        source: 'applications',
+        profit
+      };
+    });
 
-    const leadsFormatted = leadsData.map((lead: any) => ({
-      id: lead.id,
-      contact_name: lead.fields.name || 'N/A',
-      contact_email: lead.fields.business_email || lead.fields.email || 'N/A',
-      company_name: lead.fields.company || lead.fields.company_name || 'N/A',
-      status: lead.fields.status || 'new',
-      created_at: lead.fields['Submission Date'] || lead.fields.created_at || lead.createdTime,
-      source: 'leads'
-    }));
+    const leadsFormatted = leadsData.map((lead: any) => {
+      const status = lead.fields.status || 'new';
+      const profit = status === 'approved' ? 200 : 0;
+      return {
+        id: lead.id,
+        contact_name: lead.fields.name || 'N/A',
+        contact_email: lead.fields.business_email || lead.fields.email || 'N/A',
+        company_name: lead.fields.company || lead.fields.company_name || 'N/A',
+        status,
+        created_at: lead.fields['Submission Date'] || lead.fields.created_at || lead.createdTime,
+        source: 'leads',
+        profit
+      };
+    });
 
     const allLeads = [...appsFormatted, ...leadsFormatted];
     allLeads.sort((a, b) => {
