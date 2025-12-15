@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Copy, Download, QrCode } from 'lucide-react';
+import { Copy, Download, Loader2 } from 'lucide-react';
 
 interface PartnerSetupModalProps {
   isOpen: boolean;
@@ -27,8 +27,9 @@ type SetupFormData = z.infer<typeof setupSchema>;
 
 export function PartnerSetupModal({ isOpen, onClose, onSuccess }: PartnerSetupModalProps) {
   const router = useRouter();
-  const [step, setStep] = useState<'setup' | 'success'>('setup');
+  const [step, setStep] = useState<'loading' | 'setup' | 'success'>('loading');
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [partnerData, setPartnerData] = useState<{
     refLink: string;
     qrCodeDataUrl: string;
@@ -42,6 +43,37 @@ export function PartnerSetupModal({ isOpen, onClose, onSuccess }: PartnerSetupMo
   } = useForm<SetupFormData>({
     resolver: zodResolver(setupSchema),
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchPartnerInfo();
+    }
+  }, [isOpen]);
+
+  const fetchPartnerInfo = async () => {
+    setStep('loading');
+    try {
+      const response = await fetch('/api/partner/info');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.hasSlug && data.referralLink) {
+          setPartnerData({
+            refLink: data.referralLink,
+            qrCodeDataUrl: data.qrCodeDataUrl || '',
+            currentSlug: data.slug,
+          });
+          setStep('success');
+        } else {
+          setStep('setup');
+        }
+      } else {
+        setStep('setup');
+      }
+    } catch (error) {
+      console.error('Error fetching partner info:', error);
+      setStep('setup');
+    }
+  };
 
   const onSubmit = async (data: SetupFormData) => {
     setLoading(true);
@@ -75,7 +107,8 @@ export function PartnerSetupModal({ isOpen, onClose, onSuccess }: PartnerSetupMo
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    alert('Copied to clipboard!');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const downloadQRCode = () => {
@@ -92,6 +125,12 @@ export function PartnerSetupModal({ isOpen, onClose, onSuccess }: PartnerSetupMo
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
+        {step === 'loading' && (
+          <CardContent className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </CardContent>
+        )}
+
         {step === 'setup' && (
           <>
             <CardHeader>
@@ -138,7 +177,7 @@ export function PartnerSetupModal({ isOpen, onClose, onSuccess }: PartnerSetupMo
                     disabled={loading}
                     className="flex-1"
                   >
-                    {loading ? 'Создание...' : 'Создать аккаунт'}
+                    {loading ? 'Создание...' : 'Получить ссылку'}
                   </Button>
                   <Button
                     type="button"
@@ -156,12 +195,17 @@ export function PartnerSetupModal({ isOpen, onClose, onSuccess }: PartnerSetupMo
         {step === 'success' && partnerData && (
           <>
             <CardHeader>
-              <CardTitle className="text-green-600">Готово!</CardTitle>
+              <CardTitle className="text-green-600">Ваша реферальная ссылка</CardTitle>
               <CardDescription>
-                Ваш партнерский аккаунт создан
+                Используйте эту ссылку для привлечения клиентов
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {copied && (
+                <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-[100] animate-pulse">
+                  Скопировано
+                </div>
+              )}
               <div>
                 <Label className="text-sm font-medium">Реферальная ссылка</Label>
                 <div className="flex gap-2 mt-1">
@@ -174,6 +218,24 @@ export function PartnerSetupModal({ isOpen, onClose, onSuccess }: PartnerSetupMo
                     size="sm"
                     variant="outline"
                     onClick={() => copyToClipboard(partnerData.refLink)}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium">Ваш код</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    value={partnerData.currentSlug}
+                    readOnly
+                    className="text-sm font-mono"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => copyToClipboard(partnerData.currentSlug)}
                   >
                     <Copy className="h-4 w-4" />
                   </Button>

@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { partnersFindOneByEmail, partnersUpdate } from "@/lib/airtable";
 import { SESSION_COOKIE } from "@/lib/session";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   try {
     const { email, access_code } = await req.json();

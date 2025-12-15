@@ -119,7 +119,7 @@ export default function LoginPage() {
         left
     );
 
-    function authComplete(e) {
+    function authComplete(e: MessageEvent) {
       if (e.data !== "auth_complete") {
         return;
       }

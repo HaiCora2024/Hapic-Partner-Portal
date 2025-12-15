@@ -1,38 +1,33 @@
-
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
-  // Skip middleware for static files and API routes
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
-    pathname.includes('.')
-  ) {
-    return NextResponse.next();
-  }
-  
-  // Check for Replit user headers
+
+  // Получаем данные сессии
   const userId = request.headers.get('X-Replit-User-Id');
-  
-  // If no user and trying to access protected routes, redirect to login
-  if (!userId && pathname.startsWith('/dashboard')) {
+  const sessionEmail = request.cookies.get('session_email')?.value;
+  const isAuthenticated = !!(userId || sessionEmail);
+
+  // 1. Защита Dashboard
+  if (pathname.startsWith('/dashboard') && !isAuthenticated) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
-  
-  // If user exists and trying to access login, redirect to dashboard
-  if (userId && pathname === '/login') {
+
+  // 2. Если уже авторизован, не пускаем на Login
+  if (pathname === '/login' && isAuthenticated) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
-  
+
   return NextResponse.next();
 }
 
 export const config = {
+  // ВАЖНО: Мы убрали '/' из matcher. 
+  // Middleware теперь работает ТОЛЬКО на /dashboard и /login
+  // Это уберет ошибку "Middleware adding unnecessary overhead"
   matcher: [
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    '/(api|trpc)(.*)',
+    '/dashboard/:path*', 
+    '/login'
   ],
 };

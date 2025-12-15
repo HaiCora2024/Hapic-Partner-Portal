@@ -15,6 +15,7 @@ interface Lead {
   status: string;
   created_at: string;
   source?: 'applications' | 'leads';
+  profit: number;
 }
 
 export default function LeadsPage() {

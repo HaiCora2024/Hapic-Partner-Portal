@@ -1,11 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    allowedDevOrigins: ['*'],
-    logging: {
-      level: 'verbose',
-    },
-  },
+  compress: true,
+  poweredByHeader: false,
   logging: {
     fetches: {
       fullUrl: true,

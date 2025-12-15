@@ -24,7 +24,11 @@ const navigation = [
   { name: 'Profile', href: '/dashboard/profile', icon: User },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  userName?: string;
+}
+
+export function Sidebar({ userName }: SidebarProps = {}) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 

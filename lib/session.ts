@@ -30,7 +30,10 @@ export async function getSessionEmail(): Promise<string | null> {
   try {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get(SESSION_COOKIE);
-    return sessionCookie?.value || null;
+    if (!sessionCookie?.value) return null;
+    
+    // Decode the URL-encoded email
+    return decodeURIComponent(sessionCookie.value);
   } catch (error) {
     console.error('Error getting session:', error);
     return null;

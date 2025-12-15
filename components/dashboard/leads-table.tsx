@@ -13,6 +13,7 @@ interface Lead {
   status: string;
   created_at: string;
   source?: 'applications' | 'leads';
+  profit: number;
 }
 
 interface LeadsTableProps {
@@ -70,24 +71,33 @@ export function LeadsTable({ leads: externalLeads, onStatusUpdate }: LeadsTableP
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Contact Name</TableHead>
+            <TableHead>Company Name</TableHead>
             <TableHead>Email</TableHead>
-            <TableHead>Company</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Submission Date</TableHead>
+            <TableHead>Profit</TableHead>
             <TableHead>Source</TableHead>
-            <TableHead>Date</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {leads.map((lead) => (
             <TableRow key={lead.id}>
-              <TableCell className="font-medium">{lead.contact_name}</TableCell>
+              <TableCell className="font-medium">{lead.company_name}</TableCell>
               <TableCell>{lead.contact_email}</TableCell>
-              <TableCell>{lead.company_name}</TableCell>
               <TableCell>
                 <Badge variant={lead.status === 'approved' ? 'default' : 'secondary'}>
                   {lead.status}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                {new Date(lead.created_at).toLocaleDateString()}
+              </TableCell>
+              <TableCell className="font-semibold">
+                {lead.profit > 0 ? (
+                  <span className="text-green-600">€{lead.profit}</span>
+                ) : (
+                  <span className="text-muted-foreground">€0</span>
+                )}
               </TableCell>
               <TableCell>
                 {lead.source && (
@@ -98,9 +108,6 @@ export function LeadsTable({ leads: externalLeads, onStatusUpdate }: LeadsTableP
                     {lead.source === 'applications' ? 'Application' : 'Lead'}
                   </Badge>
                 )}
-              </TableCell>
-              <TableCell>
-                {new Date(lead.created_at).toLocaleDateString()}
               </TableCell>
             </TableRow>
           ))}
