@@ -26,13 +26,14 @@ export async function GET() {
     ]);
 
     const appsFormatted = applications.map((app: any) => {
-      const status = app.fields.status || 'new';
+      const status = app.fields.status || app.fields.Status || 'new';
       const profit = status === 'approved' ? 200 : 0;
       return {
         id: app.id,
-        contact_name: app.fields.name || 'N/A',
-        contact_email: app.fields.business_email || app.fields.email || 'N/A',
-        company_name: app.fields.company || app.fields.company_name || 'N/A',
+        contact_name: app.fields['Contact Person Name'] || app.fields.name || 'N/A',
+        contact_email: app.fields['Email'] || app.fields.business_email || 'N/A',
+        company_name: app.fields['Company Name'] || app.fields.company || 'N/A',
+        contact_phone: app.fields['Contact Phone/messenger'] || app.fields.phone || '',
         status,
         created_at: app.fields['Submission Date'] || app.fields.created_at || app.createdTime,
         source: 'applications',
@@ -41,13 +42,14 @@ export async function GET() {
     });
 
     const leadsFormatted = leadsData.map((lead: any) => {
-      const status = lead.fields.status || 'new';
+      const status = lead.fields.status || lead.fields.Status || 'new';
       const profit = status === 'approved' ? 200 : 0;
       return {
         id: lead.id,
-        contact_name: lead.fields.name || 'N/A',
-        contact_email: lead.fields.business_email || lead.fields.email || 'N/A',
-        company_name: lead.fields.company || lead.fields.company_name || 'N/A',
+        contact_name: lead.fields['Contact Person Name'] || lead.fields.name || 'N/A',
+        contact_email: lead.fields['Email'] || lead.fields.business_email || 'N/A',
+        company_name: lead.fields['Company Name'] || lead.fields.company || 'N/A',
+        contact_phone: lead.fields['Contact Phone/messenger'] || lead.fields.phone || '',
         status,
         created_at: lead.fields['Submission Date'] || lead.fields.created_at || lead.createdTime,
         source: 'leads',
@@ -87,18 +89,17 @@ export async function POST(request: NextRequest) {
     const BASE_ID = process.env.AIRTABLE_BASE_ID!;
     const LEADS_TABLE = process.env.AIRTABLE_LEADS_TABLE || "Leads";
 
-    // Подготавливаем данные для Airtable
+    // Подготавливаем данные для Airtable с правильными именами полей
     const fieldsToCreate = {
-      name: body.contact_name,
-      business_email: body.contact_email,
-      company: body.company_name,
-      phone: body.contact_phone,
-      monthly_revenue: body.monthly_revenue,
-      current_bank: body.current_bank,
-      best_contact_time: body.best_contact_time,
-      referrer: partner.fields?.current_slug || '',
-      partner_id: partner.fields?.partner_id || partner.id,
-      status: 'new'
+      'Company Name': body.company_name,
+      'Contact Person Name': body.contact_name,
+      'Email': body.contact_email,
+      'Contact Phone/messenger': body.contact_phone,
+      'Monthly Revenue': body.monthly_revenue,
+      'Current Banking Provider': body.current_bank,
+      'Best Time to Contact': body.best_contact_time,
+      'partner_id': [partner.id],  // Linked record (array format)
+      'status': 'new'
     };
 
     console.log('Creating lead with fields:', fieldsToCreate);
