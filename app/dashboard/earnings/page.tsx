@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import { Euro, TrendingUp, Calendar, CreditCard } from 'lucide-react';
 
 interface StatsData {
@@ -9,6 +11,19 @@ interface StatsData {
   approved: number;
   pending: number;
   confirmedEarnings: number;
+  totalPendingAmount: number;
+  nextPayout: number;
+  totalPaid: number;
+  conversionRate: number;
+}
+
+interface Commission {
+  id: string;
+  leadCompanyName: string;
+  commissionStatus: string;
+  paymentAmount: number;
+  dateEarned: string;
+  datePaid: string | null;
 }
 
 export default function EarningsPage() {
@@ -16,42 +31,56 @@ export default function EarningsPage() {
     total: 0,
     approved: 0,
     pending: 0,
-    confirmedEarnings: 0
+    confirmedEarnings: 0,
+    totalPendingAmount: 0,
+    nextPayout: 0,
+    totalPaid: 0,
+    conversionRate: 0
   });
+  const [commissions, setCommissions] = useState<Commission[]>([]);
   const [loading, setLoading] = useState(true);
+  const [commissionsLoading, setCommissionsLoading] = useState(true);
 
   useEffect(() => {
-    async function loadStats() {
+    async function loadData() {
       try {
-        const response = await fetch('/api/partner/stats');
-        if (response.ok) {
-          const data = await response.json();
+        // Load stats
+        const statsResponse = await fetch('/api/partner/stats');
+        if (statsResponse.ok) {
+          const data = await statsResponse.json();
           setStats({
             total: data.total || 0,
             approved: data.approved || 0,
             pending: data.pending || 0,
-            confirmedEarnings: data.confirmedEarnings || 0
+            confirmedEarnings: data.confirmedEarnings || 0,
+            totalPendingAmount: data.totalPendingAmount || 0,
+            nextPayout: data.nextPayout || 0,
+            totalPaid: data.totalPaid || 0,
+            conversionRate: data.conversionRate || 0
           });
-        } else {
-          console.error('Failed to load stats');
         }
       } catch (error) {
         console.error('Error loading stats:', error);
       } finally {
         setLoading(false);
       }
+
+      try {
+        // Load commissions
+        const commissionsResponse = await fetch('/api/partner/commissions');
+        if (commissionsResponse.ok) {
+          const data = await commissionsResponse.json();
+          setCommissions(data.commissions || []);
+        }
+      } catch (error) {
+        console.error('Error loading commissions:', error);
+      } finally {
+        setCommissionsLoading(false);
+      }
     }
 
-    loadStats();
+    loadData();
   }, []);
-
-  // Calculate conversion rate
-  const conversionRate = stats.total > 0
-    ? Math.round((stats.approved / stats.total) * 100)
-    : 0;
-
-  // Calculate pending earnings (assuming €200 per lead)
-  const pendingEarnings = stats.pending * 200;
 
   return (
     <div className="space-y-6">
@@ -75,7 +104,6 @@ export default function EarningsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">€{stats.confirmedEarnings}</div>
-              <p className="text-xs text-muted-foreground">From {stats.approved} approved leads</p>
             </CardContent>
           </Card>
 
@@ -85,8 +113,7 @@ export default function EarningsPage() {
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">€{pendingEarnings}</div>
-              <p className="text-xs text-muted-foreground">From {stats.pending} pending leads</p>
+              <div className="text-2xl font-bold">€{stats.totalPendingAmount}</div>
             </CardContent>
           </Card>
 
@@ -96,19 +123,17 @@ export default function EarningsPage() {
               <CreditCard className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">€{stats.confirmedEarnings}</div>
-              <p className="text-xs text-muted-foreground">Scheduled for next month</p>
+              <div className="text-2xl font-bold">€{stats.nextPayout}</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Paid</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{conversionRate}%</div>
-              <p className="text-xs text-muted-foreground">{stats.approved} / {stats.total} approved</p>
+              <div className="text-2xl font-bold">€{stats.totalPaid}</div>
             </CardContent>
           </Card>
         </div>
@@ -116,29 +141,60 @@ export default function EarningsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Earnings History</CardTitle>
+          <CardTitle>Payment History</CardTitle>
           <CardDescription>
-            Your commission history and payout details
+            Detailed breakdown of your commissions and payment status
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {stats.confirmedEarnings === 0 ? (
+          {commissionsLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">Loading payment history...</p>
+            </div>
+          ) : commissions.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Euro className="h-12 w-12 mx-auto mb-4 opacity-20" />
-              <p>No earnings yet</p>
-              <p className="text-sm">Start submitting leads to earn commissions</p>
+              <p>No payment history yet</p>
+              <p className="text-sm">Commissions will appear here once leads are approved</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center py-4 border-b">
-                <div>
-                  <p className="font-medium">Approved Leads Commission</p>
-                  <p className="text-sm text-muted-foreground">{stats.approved} leads × €200</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-green-600">€{stats.confirmedEarnings}</p>
-                </div>
-              </div>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Lead Company Name</TableHead>
+                    <TableHead>Commission Status</TableHead>
+                    <TableHead>Payment Amount</TableHead>
+                    <TableHead>Date Earned</TableHead>
+                    <TableHead>Date Paid</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {commissions.map((commission) => (
+                    <TableRow key={commission.id}>
+                      <TableCell className="font-medium">{commission.leadCompanyName}</TableCell>
+                      <TableCell>
+                        <Badge variant={commission.commissionStatus === 'paid' ? 'default' : 'secondary'}>
+                          {commission.commissionStatus}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-semibold text-green-600">
+                        €{commission.paymentAmount}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(commission.dateEarned).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        {commission.datePaid
+                          ? new Date(commission.datePaid).toLocaleDateString()
+                          : <span className="text-muted-foreground">-</span>
+                        }
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>

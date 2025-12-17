@@ -40,13 +40,21 @@ export async function GET() {
   const totalLeads = partner.fields?.['Total Leads'] || 0;
   const totalPending = partner.fields?.['Total pending'] || 0;
   const approved = partner.fields?.['Leads + Apps Count'] || 0; // Approved count
-  const confirmedEarnings = partner.fields?.['Total Earned'] || 0; // Confirmed Earnings
+  const confirmedEarnings = partner.fields?.['Total Earned'] || 0; // Total Earned
+  const totalPendingAmount = partner.fields?.['Total Pending Amount'] || 0; // Pending amount
+  const nextPayout = partner.fields?.['Next Payout'] || 0; // Next Payout
+  const totalPaid = partner.fields?.['Total Paid'] || 0; // Total Paid
+  const conversionRate = partner.fields?.['Conversion Rate'] || 0; // Conversion Rate %
 
   return NextResponse.json({
     total: totalLeads,
     slug,
     approved,
     pending: totalPending,
-    confirmedEarnings
+    confirmedEarnings,
+    totalPendingAmount,
+    nextPayout,
+    totalPaid,
+    conversionRate
   });
 }

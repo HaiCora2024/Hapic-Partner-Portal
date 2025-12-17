@@ -5,6 +5,7 @@ const BASE_ID = process.env.AIRTABLE_BASE_ID!;
 const PARTNERS = process.env.AIRTABLE_PARTNERS_TABLE || "Partners";
 const APPS = process.env.AIRTABLE_APPLICATIONS_TABLE || "Applications";
 const LEADS = process.env.AIRTABLE_LEADS_TABLE || "Leads";
+const COMMISSIONS = process.env.AIRTABLE_COMMISSIONS_TABLE || "tbloE1AcETc9OljAG";
 
 function esc(v: string) {
   // экранирование одинарной кавычки для формулы Airtable
@@ -78,5 +79,13 @@ export async function leadsListByPartner(currentSlug?: string, partnerId?: strin
   const or = terms.length ? (terms.length === 1 ? terms[0] : `OR(${terms.join(",")})`) : "FALSE()";
   const ff = encodeURIComponent(or);
   const data = await atFetch(`${encodeURIComponent(LEADS)}?filterByFormula=${ff}&pageSize=100`);
+  return data.records || [];
+}
+
+export async function commissionsListByPartner(partnerId: string) {
+  // Filter by Partner ID (linked record)
+  const formula = `FIND('${esc(partnerId)}', ARRAYJOIN({Partner ID}))`;
+  const ff = encodeURIComponent(formula);
+  const data = await atFetch(`${encodeURIComponent(COMMISSIONS)}?filterByFormula=${ff}&pageSize=100`);
   return data.records || [];
 }

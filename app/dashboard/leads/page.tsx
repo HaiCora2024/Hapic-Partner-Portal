@@ -18,12 +18,24 @@ interface Lead {
   profit: number;
 }
 
+interface StatsData {
+  total: number;
+  approved: number;
+  conversionRate: number;
+}
+
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<StatsData>({
+    total: 0,
+    approved: 0,
+    conversionRate: 0
+  });
 
   useEffect(() => {
     fetchLeads();
+    fetchStats();
   }, []);
 
   async function fetchLeads() {
@@ -38,16 +50,43 @@ export default function LeadsPage() {
     }
   }
 
+  async function fetchStats() {
+    try {
+      const response = await fetch('/api/partner/stats');
+      if (response.ok) {
+        const data = await response.json();
+        setStats({
+          total: data.total || 0,
+          approved: data.approved || 0,
+          conversionRate: data.conversionRate || 0
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  }
+
   return (
     <div>
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>All Leads</CardTitle>
-              <CardDescription>
-                Manage and track all your submitted leads
-              </CardDescription>
+            <div className="flex-1">
+              <div className="flex items-center gap-6">
+                <div>
+                  <CardTitle>All Leads</CardTitle>
+                  <CardDescription>
+                    Manage and track all your submitted leads
+                  </CardDescription>
+                </div>
+                <div className="border-l pl-6">
+                  <div className="text-sm font-medium text-muted-foreground">Conversion Rate</div>
+                  <div className="text-2xl font-bold">{stats.conversionRate}%</div>
+                  <div className="text-xs text-muted-foreground">
+                    {stats.approved} / {stats.total} leads
+                  </div>
+                </div>
+              </div>
             </div>
             <Link href="/dashboard/leads/new">
               <Button>
